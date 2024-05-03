@@ -41,13 +41,13 @@ class StackedListCarousel<T> extends StatefulWidget {
           maxDisplayedItemCount > 1,
           'maxDisplayedItemCount must be greater than 1',
         ),
-        assert(
+        /* assert(
           outermostCardHeightFactor +
                   (maxDisplayedItemCount - 1) * itemGapHeightFactor <=
               1,
           'Not enough space. The total height of outermost card and gaps must '
           'be lower than 1',
-        ),
+        ), */
         super(key: key);
 
   /// A list of [T] items which used to render cards.
@@ -111,8 +111,7 @@ class StackedListCarousel<T> extends StatefulWidget {
   State<StackedListCarousel<T>> createState() => _StackedListCarouselState();
 }
 
-class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
-    with TickerProviderStateMixin {
+class _StackedListCarouselState<T> extends State<StackedListCarousel<T>> with TickerProviderStateMixin {
   late final StackedListController<T> controller;
 
   late int reorderCardsCount;
@@ -231,9 +230,7 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
 
     reorderCardsCount = maxDisplayedItemCount - 1;
 
-    final freeHeightFactor = 1 -
-        (widget.outermostCardHeightFactor +
-            (maxDisplayedItemCount - 1) * itemGapHeightFactor);
+    final freeHeightFactor = 1 - (widget.outermostCardHeightFactor + (maxDisplayedItemCount - 1) * itemGapHeightFactor);
 
     cardsMargin
       ..clear()
@@ -247,12 +244,10 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
     cardsSizeFactors
       ..clear()
       ..addAll(
-        List.generate(
-          maxDisplayedItemCount,
-          (index) =>
-              widget.outermostCardHeightFactor -
-              widget.itemGapHeightFactor * (maxDisplayedItemCount - index - 1),
-        ),
+        List.generate(maxDisplayedItemCount, (index) {
+          if (index == maxDisplayedItemCount - 1) return 1;
+          return widget.outermostCardHeightFactor - widget.itemGapHeightFactor * (maxDisplayedItemCount - index - 1);
+        }),
       );
 
     marginAnimations
@@ -331,17 +326,14 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
                 (index) => Container(
                   child: _indexedCard(
                     context,
-                    (index + controller.realOutermostIndex) %
-                        controller.itemCount,
+                    (index + controller.realOutermostIndex) % controller.itemCount,
                   ),
                 ),
               ),
             );
         }
 
-        final scaleAlignment = widget.alignment.isTop
-            ? Alignment.bottomCenter
-            : Alignment.topCenter;
+        final scaleAlignment = widget.alignment.isTop ? Alignment.bottomCenter : Alignment.topCenter;
 
         return SizedBox.fromSize(
           size: viewSize,
@@ -351,8 +343,7 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
                   alignment: Alignment.center,
                   children: [
                     // Build innermost (placeholder) card.
-                    if (controller.itemCount > 2)
-                      _innermostCard(size, scaleAlignment),
+                    if (controller.itemCount > 2) _innermostCard(size, scaleAlignment),
                     // Build reorder-able cards list.
                     ...List.generate(
                       reorderCardsCount,
@@ -371,17 +362,14 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
     Size size,
     Alignment scaleAlignment,
   ) {
-    final child = cards[(reorderCardsCount + controller.swapCount + 1) %
-            controller.itemCount] ??
-        const SizedBox.shrink();
+    final child =
+        cards[(reorderCardsCount + controller.swapCount + 1) % controller.itemCount] ?? const SizedBox.shrink();
 
     return AnimatedBuilder(
       animation: innermostCardMarginAnimation,
       builder: (context, child) => _alignPositioned(
-        margin: (controller.transitionForwarding
-                ? innermostCardMarginAnimation.value
-                : cardsMargin.first) *
-            size.height,
+        margin:
+            (controller.transitionForwarding ? innermostCardMarginAnimation.value : cardsMargin.first) * size.height,
         child: Transform.scale(
           scale: cardsSizeFactors.first,
           alignment: scaleAlignment,
@@ -397,21 +385,15 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
     Size size,
     Alignment scaleAlignment,
   ) {
-    final child = cards[(reorderCardsCount - i + controller.swapCount) %
-            controller.itemCount] ??
-        const SizedBox.shrink();
+    final child =
+        cards[(reorderCardsCount - i + controller.swapCount) % controller.itemCount] ?? const SizedBox.shrink();
 
     return AnimatedBuilder(
       animation: marginAnimations[i],
       builder: (context, _) => _alignPositioned(
-        margin: (controller.transitionForwarding
-                ? marginAnimations[i].value
-                : cardsMargin[i]) *
-            size.height,
+        margin: (controller.transitionForwarding ? marginAnimations[i].value : cardsMargin[i]) * size.height,
         child: Transform.scale(
-          scale: controller.transitionForwarding
-              ? sizeFactorAnimations[i].value
-              : cardsSizeFactors[i],
+          scale: controller.transitionForwarding ? sizeFactorAnimations[i].value : cardsSizeFactors[i],
           alignment: scaleAlignment,
           child: hasInnerWrapper
               ? ((i == reorderCardsCount - 1 && controller.transitionForwarding)
@@ -429,11 +411,10 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
     Size size,
     Alignment scaleAlignment,
   ) {
-    final child =
-        cards[controller.realOutermostIndex] ?? const SizedBox.shrink();
+    final child = cards[controller.realOutermostIndex] ?? const SizedBox.shrink();
 
     return _alignPositioned(
-      margin: cardsMargin.last * size.height,
+      margin: cardsMargin.last * size.height * widget.outermostCardHeightFactor,
       child: ValueListenableBuilder<Offset>(
         valueListenable: controller.outermostCardOffset,
         builder: (context, offset, child) {
@@ -481,6 +462,7 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>>
       height: viewSize.height,
       width: viewSize.width,
       aspectRatio: cardAspectRatio!,
+      firstCardScaleFactor: widget.outermostCardHeightFactor,
     );
 
     return SizedBox.fromSize(
