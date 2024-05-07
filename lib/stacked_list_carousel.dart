@@ -198,6 +198,15 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>> with Ti
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    updateAnimations(
+      itemCount: controller.itemCount,
+      initial: true,
+    );
+  }
+
+  @override
   void dispose() {
     controller.dispose();
     super.dispose();
