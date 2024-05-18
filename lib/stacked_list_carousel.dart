@@ -33,6 +33,7 @@ class StackedListCarousel<T> extends StatefulWidget {
     this.innerCardsWrapper,
     this.outermostCardWrapper,
     Key? key,
+    required this.controllerCallback,
   })  : assert(
           behavior != CarouselBehavior.consume || emptyBuilder != null,
           'emptyBuilder() must be provided in consume mode',
@@ -106,6 +107,8 @@ class StackedListCarousel<T> extends StatefulWidget {
 
   /// The outermost card flying away animation duration.
   final Duration outermostCardAnimationDuration;
+
+  final Function(StackedListController<T> controller) controllerCallback;
 
   @override
   State<StackedListCarousel<T>> createState() => _StackedListCarouselState();
@@ -188,6 +191,7 @@ class _StackedListCarouselState<T> extends State<StackedListCarousel<T>> with Ti
       itemCount: controller.itemCount,
       initial: true,
     );
+    widget.controllerCallback.call(controller);
 
     WidgetsBinding.instance.addPostFrameCallback(
       (_) {
